@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  agent:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/cad_matlab_agent
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./runs:/app/runs
+      - ./config.yaml:/app/config.yaml
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    # Note: FreeCAD and MATLAB must be installed in the container
+    # This is a starting point - customize for your environment
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=cad_matlab_agent
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+

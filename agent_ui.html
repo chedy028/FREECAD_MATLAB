@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAD → MATLAB Autonomous Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        #designPrompt {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        #designPrompt:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #submitBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        #submitBtn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        #submitBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #clearBtn {
+            background: #6c757d;
+            color: white;
+            padding: 15px 25px;
+        }
+
+        #clearBtn:hover {
+            background: #5a6268;
+        }
+
+        .examples {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .examples h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .example-button {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .example-button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .status.info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        #response {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 100px;
+            max-height: 600px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        #response.show {
+            display: block;
+        }
+
+        .response-section {
+            margin-bottom: 20px;
+        }
+
+        .response-section h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .response-content {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .metric {
+            display: inline-block;
+            background: white;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 6px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .metric-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .config-note {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .config-note strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Autonomous CAD → MATLAB Agent</h1>
+            <p>Design, simulate, and optimize with AI-powered iteration</p>
+        </div>
+
+        <div class="content">
+            <div class="config-note">
+                <strong>⚙️ Before you start:</strong>
+                Make sure the API server is running with a valid OpenRouter API key:
+                <pre style="margin-top: 10px; background: rgba(0,0,0,0.1); color: #333;">$env:OPENROUTER_API_KEY="your-actual-key-here"
+python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8000 --reload</pre>
+            </div>
+
+            <div class="input-section">
+                <h2>📝 Design Request</h2>
+                <textarea 
+                    id="designPrompt" 
+                    placeholder="Describe what you want to design and optimize...&#10;&#10;Example: Design a cantilever beam that is 200mm long. The beam must support a 100N downward force at the free end. Minimize mass while keeping max stress under 200 MPa and deflection under 5mm. Use aluminum (E=69 GPa)."
+                ></textarea>
+            </div>
+
+            <div class="examples">
+                <h3>💡 Quick Examples (click to load):</h3>
+                <button class="example-button" onclick="loadExample('beam')">Cantilever Beam</button>
+                <button class="example-button" onclick="loadExample('enclosure')">Thermal Enclosure</button>
+                <button class="example-button" onclick="loadExample('bracket')">Mounting Bracket</button>
+            </div>
+
+            <div class="button-container">
+                <button id="submitBtn" onclick="submitDesign()">🚀 Start Design & Optimization</button>
+                <button id="clearBtn" onclick="clearAll()">🗑️ Clear</button>
+            </div>
+
+            <div id="status" class="status"></div>
+            <div id="response"></div>
+        </div>
+
+        <div class="footer">
+            CAD → MATLAB Autonomous Agent v1.0 | Powered by FreeCAD, MATLAB & OpenRouter
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://127.0.0.1:8000';
+
+        const examples = {
+            beam: `Design a cantilever beam that is 200mm long and 20mm wide. The beam must support a 100N downward force at the free end. Minimize mass while keeping maximum stress under 200 MPa and deflection under 5mm. Use aluminum with Young's modulus of 69 GPa and Poisson's ratio of 0.33.`,
+            
+            enclosure: `Design a rectangular electronic enclosure with internal dimensions suitable for a 100mm x 80mm circuit board. The enclosure should maintain internal temperature below 60°C with 10W heat dissipation. External ambient is 25°C. Minimize material usage while meeting thermal requirements. Use aluminum with thermal conductivity 200 W/m·K.`,
+            
+            bracket: `Design an L-shaped mounting bracket to support a 50kg load. The vertical section should be 100mm and horizontal section 80mm. Safety factor must be at least 2.0. Minimize weight while keeping maximum stress under 150 MPa. Use steel with E=200 GPa.`
+        };
+
+        function loadExample(type) {
+            document.getElementById('designPrompt').value = examples[type];
+        }
+
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = `status ${type} show`;
+            
+            if (type === 'info') {
+                statusDiv.innerHTML = `<span class="spinner"></span>${message}`;
+            } else {
+                statusDiv.innerHTML = message;
+            }
+        }
+
+        function hideStatus() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.classList.remove('show');
+        }
+
+        function clearAll() {
+            document.getElementById('designPrompt').value = '';
+            document.getElementById('response').classList.remove('show');
+            document.getElementById('response').innerHTML = '';
+            hideStatus();
+        }
+
+        async function submitDesign() {
+            const prompt = document.getElementById('designPrompt').value.trim();
+            
+            if (!prompt) {
+                showStatus('⚠️ Please enter a design request', 'error');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            
+            showStatus('🤖 Agent is planning and designing... This may take a few minutes', 'info');
+            document.getElementById('response').classList.remove('show');
+
+            try {
+                const response = await fetch(`${API_BASE}/chat`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResponse(data);
+                showStatus('✅ Design completed successfully!', 'success');
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                
+                // Show helpful error messages
+                if (error.message.includes('401')) {
+                    showStatus('❌ Error: Invalid or missing OpenRouter API key. Please set a valid key and restart the server.', 'error');
+                } else if (error.message.includes('Failed to fetch')) {
+                    showStatus('❌ Error: Cannot connect to API server. Make sure the server is running at http://127.0.0.1:8000', 'error');
+                }
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        function displayResponse(data) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.classList.add('show');
+
+            let html = '';
+
+            // Run Info
+            html += `
+                <div class="response-section">
+                    <h3>📊 Run Information</h3>
+                    <div class="response-content">
+                        <strong>Run ID:</strong> ${data.run_id || 'N/A'}<br>
+                        <strong>Status:</strong> ${data.status || 'N/A'}<br>
+                        <strong>Final State:</strong> ${data.final_state || 'N/A'}<br>
+                        <strong>Iterations:</strong> ${data.total_iterations || 0}<br>
+                        <strong>Total Time:</strong> ${data.total_time ? data.total_time.toFixed(2) + 's' : 'N/A'}
+                    </div>
+                </div>
+            `;
+
+            // Best Design
+            if (data.best_design) {
+                const design = data.best_design;
+                html += `
+                    <div class="response-section">
+                        <h3>🏆 Best Design</h3>
+                        <div class="response-content">
+                            <strong>Iteration:</strong> ${design.iteration}<br>
+                            <strong>Score:</strong> ${design.score ? design.score.toFixed(4) : 'N/A'}<br>
+                            <strong>Converged:</strong> ${design.converged ? '✅ Yes' : '❌ No'}<br>
+                            ${design.reasoning ? `<br><strong>Reasoning:</strong><br>${design.reasoning}` : ''}
+                        </div>
+                    </div>
+                `;
+
+                // Parameters
+                if (design.parameters) {
+                    html += `
+                        <div class="response-section">
+                            <h3>⚙️ Parameters</h3>
+                            <div class="response-content">
+                    `;
+                    for (const [key, value] of Object.entries(design.parameters)) {
+                        html += `<span class="metric"><span class="metric-label">${key}:</span> <span class="metric-value">${value}</span></span>`;
+                    }
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Metrics
+                if (design.metrics) {
+                    html += `
+                        <div class="response-section">
+                            <h3>📈 Performance Metrics</h3>
+                            <div class="response-content">
+                    `;
+                    for (const [key, value] of Object.entries(design.metrics)) {
+                        const displayValue = typeof value === 'number' ? value.toFixed(4) : value;
+                        html += `<span class="metric"><span class="metric-label">${key}:</span> <span class="metric-value">${displayValue}</span></span>`;
+                    }
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // Message
+            if (data.message) {
+                html += `
+                    <div class="response-section">
+                        <h3>💬 Agent Message</h3>
+                        <div class="response-content">
+                            ${data.message}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Artifacts
+            if (data.artifacts && data.artifacts.length > 0) {
+                html += `
+                    <div class="response-section">
+                        <h3>📁 Generated Files</h3>
+                        <div class="response-content">
+                `;
+                data.artifacts.forEach(artifact => {
+                    html += `<div>📄 ${artifact}</div>`;
+                });
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Raw Response (collapsible)
+            html += `
+                <div class="response-section">
+                    <h3 style="cursor: pointer;" onclick="document.getElementById('rawResponse').style.display = document.getElementById('rawResponse').style.display === 'none' ? 'block' : 'none'">
+                        🔍 Raw Response (click to toggle)
+                    </h3>
+                    <pre id="rawResponse" style="display: none;">${JSON.stringify(data, null, 2)}</pre>
+                </div>
+            `;
+
+            responseDiv.innerHTML = html;
+        }
+
+        // Allow Enter+Ctrl to submit
+        document.getElementById('designPrompt').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                submitDesign();
+            }
+        });
+
+        // Check API health on load
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                if (response.ok) {
+                    console.log('✅ API server is running');
+                }
+            } catch (error) {
+                console.warn('⚠️ Cannot connect to API server. Make sure it is running.');
+            }
+        });
+    </script>
+</body>
+</html>
+

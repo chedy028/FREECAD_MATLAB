@@ -1,0 +1,116 @@
+# CAD-MATLAB Agent Configuration
+
+# OpenRouter API Configuration
+openrouter:
+  api_key_env: "OPENROUTER_API_KEY"  # Read from environment variable
+  base_url: "https://openrouter.ai/api/v1"
+  default_model: "openai/gpt-4o"
+  fallback_models:
+    - "anthropic/claude-3.5-sonnet"
+    - "google/gemini-1.5-pro"
+  http_referer: "https://github.com/your-repo"  # Optional
+  x_title: "CAD-MATLAB Agent"  # Optional
+  model_cache_ttl_seconds: 600  # Cache model list for 10 minutes
+  timeout_seconds: 120
+  max_retries: 3
+
+# Agent Configuration
+agent:
+  max_concurrent_runs: 3
+  default_budgets:
+    max_iterations: 30
+    max_wall_time_s: 7200
+    max_failures: 8
+  convergence:
+    epsilon: 0.001  # Relative improvement threshold
+    stable_iterations: 3  # Iterations with <epsilon improvement
+
+# FreeCAD Configuration
+freecad:
+  # CLI executable paths (OS-dependent)
+  windows_cmd: "C:\\Program Files\\FreeCAD 1.0\\bin\\FreeCADCmd.exe"
+  linux_cmd: "/usr/bin/freecadcmd"
+  macos_cmd: "/Applications/FreeCAD.app/Contents/MacOS/FreeCADCmd"
+  
+  timeout_seconds: 300  # 5 minutes for CAD build
+  allowed_templates:
+    - "parametric_enclosure_v1"
+    - "cantilever_beam_v1"
+    - "parametric_bracket_v1"
+  allowed_export_formats:
+    - "step"
+    - "stl"
+  
+  # Parameter validation ranges (example)
+  param_ranges:
+    L: [10, 500]      # Length: 10-500mm
+    W: [10, 500]      # Width: 10-500mm
+    H: [10, 300]      # Height: 10-300mm
+    wall_t: [0.5, 10] # Wall thickness: 0.5-10mm
+    fillet_r: [0, 20] # Fillet radius: 0-20mm
+
+# MATLAB Configuration
+matlab:
+  timeout_seconds: 600  # 10 minutes for simulation
+  allowed_entrypoints:
+    - "run_sim.m"
+    - "run_thermal_analysis.m"
+    - "run_structural_analysis.m"
+    - "run_cantilever_analysis.m"
+  startup_options:
+    - "-nodesktop"
+    - "-nosplash"
+  workspace_cleanup: true  # Clear workspace between runs
+  
+  # PDE Toolbox settings
+  pde:
+    geometry_formats:
+      - "step"
+      - "stl"
+    default_mesh_size: "normal"
+
+# Storage Configuration
+storage:
+  base_dir: "runs"
+  artifacts_retention_days: 30
+  database_url: "sqlite+aiosqlite:///./cad_matlab_agent.db"
+  
+  # Directory structure per run
+  structure:
+    cad: "cad"
+    simulation: "simulation"
+    plots: "plots"
+    logs: "logs"
+
+# Security Configuration
+security:
+  sandbox_enabled: true
+  allowed_base_paths:
+    - "runs"
+    - "cad_templates"
+    - "matlab"
+  max_file_size_mb: 500
+  blocked_extensions:
+    - ".exe"
+    - ".dll"
+    - ".so"
+    - ".dylib"
+    - ".sh"
+    - ".bat"
+    - ".ps1"
+
+# API Configuration
+api:
+  host: "0.0.0.0"
+  port: 8000
+  cors_origins:
+    - "http://localhost:3000"
+    - "http://localhost:8000"
+  log_level: "INFO"
+
+# Job Queue Configuration (optional)
+queue:
+  enabled: false
+  broker_url: "redis://localhost:6379/0"
+  result_backend: "redis://localhost:6379/1"
+

@@ -1,0 +1,2 @@
+"""CAD templates for FreeCAD"""
+

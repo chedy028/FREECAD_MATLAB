@@ -6,11 +6,15 @@ from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
+
+# Load .env file before anything else
+load_dotenv()
 
 from agent.config import load_config
 from agent.db.models import init_db, Run, Iteration

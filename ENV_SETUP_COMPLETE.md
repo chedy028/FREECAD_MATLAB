@@ -117,3 +117,4 @@ Edit `.env` file and restart the server.
 
 **🎉 You're all set! The app will now automatically use your API key from `.env` file! 🎉**
 
+

@@ -2,9 +2,9 @@
 
 ## ✅ App is Currently Running!
 
-**Server URL:** http://127.0.0.1:8001
+**Server URL:** http://127.0.0.1:8002
 
-**API Docs:** http://127.0.0.1:8001/docs
+**API Docs:** http://127.0.0.1:8002/docs
 
 ---
 
@@ -28,7 +28,7 @@ The app will automatically load it on startup! 🎉
 
 ### Option 2: Manual Command
 ```powershell
-python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8001 --reload
+python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 
 **Note:** With `.env` file created, you no longer need to set the API key manually!
@@ -41,7 +41,7 @@ python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8001 --reload
    - Double-click `agent_ui.html` in your project folder, OR
    - Drag `agent_ui.html` into your browser
 
-2. **The UI will automatically connect to:** `http://127.0.0.1:8001`
+2. **The UI will automatically connect to:** `http://127.0.0.1:8002`
 
 3. **Try the example:**
    - Click "Start Design & Optimization"
@@ -54,12 +54,12 @@ python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8001 --reload
 
 ### Health Check
 ```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8001/health" -Method GET
+Invoke-RestMethod -Uri "http://127.0.0.1:8002/health" -Method GET
 ```
 
 ### List Available LLM Models
 ```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8001/models" -Method GET
+Invoke-RestMethod -Uri "http://127.0.0.1:8002/models" -Method GET
 ```
 
 ### Start an Optimization Task
@@ -68,7 +68,7 @@ $body = @{
     message = "Design a cantilever beam that minimizes mass while keeping max stress below 200 MPa and deflection below 5mm. Use aluminum (E=69 GPa, density=2700 kg/m³), length 200mm, width 20mm, applied force 100N at the tip."
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://127.0.0.1:8001/chat" `
+Invoke-RestMethod -Uri "http://127.0.0.1:8002/chat" `
                   -Method POST `
                   -Body $body `
                   -ContentType "application/json"
@@ -81,7 +81,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8001/chat" `
 All design iterations are saved to:
 
 ```
-C:\Users\chend\OneDrive\桌面\Projects\FREECAD_MATLAB\runs\
+C:\Projects\FREECAD_MATLAB\runs\
 ```
 
 Each run creates:
@@ -146,7 +146,7 @@ Press `CTRL+C` in the terminal where the server is running
 
 | Component | Status | Notes |
 |-----------|--------|-------|
-| **FastAPI Server** | ✅ Running | Port 8001 |
+| **FastAPI Server** | ✅ Running | Port 8002 |
 | **FreeCAD 1.0** | ✅ Configured | Headless mode |
 | **MATLAB R2025b** | ✅ Engine API | PDE Toolbox |
 | **OpenRouter API** | ✅ Connected | GPT-4 models |

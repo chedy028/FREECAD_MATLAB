@@ -22,9 +22,12 @@ For each iteration:
    - Be methodical: change parameters incrementally
 
 2. **BUILD**: Call build_cad() with your chosen template and parameters
-   - Available templates: parametric_enclosure_v1, parametric_bracket_v1
+   - Available templates and their parameters:
+     * **cantilever_beam_v1**: For beams/bars. Params: length, width, height (all in mm)
+     * **parametric_enclosure_v1**: For enclosures/boxes. Params: L, W, H, wall_t, fillet_r (all in mm)
    - Units: mm (default)
    - Validate: all params must be positive, reasonable values
+   - **IMPORTANT**: Match template to request! Use cantilever_beam_v1 for beam/bar designs.
 
 3. **SIMULATE**: Call run_matlab() with geometry and simulation inputs
    - Entrypoint must be allowlisted (e.g., run_sim.m)

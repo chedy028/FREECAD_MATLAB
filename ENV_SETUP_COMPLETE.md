@@ -24,7 +24,7 @@ That's it! No need to manually set environment variables anymore! 🎯
 
 ### **Alternative (Manual):**
 ```powershell
-python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8001 --reload
+python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8002 --reload
 ```
 The `.env` file will be loaded automatically!
 
@@ -57,7 +57,7 @@ OPENROUTER_API_KEY=sk-or-v1-12d7f1ac695a42bacc451a5d331c1d6f0eadee020aebffbd4a3b
 
 | Component | Status |
 |-----------|--------|
-| **Server** | ✅ Running on http://127.0.0.1:8001 |
+| **Server** | ✅ Running on http://127.0.0.1:8002 |
 | **API Key** | ✅ Loaded from `.env` automatically |
 | **FreeCAD 1.0** | ✅ Configured |
 | **MATLAB R2025b** | ✅ Engine API Ready |

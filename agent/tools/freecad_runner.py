@@ -1,6 +1,7 @@
 """FreeCAD headless runner"""
 
 import asyncio
+import ctypes
 import json
 import os
 import platform
@@ -9,6 +10,36 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 from agent.orchestrator.validators import CADConfig, CADResult
+
+
+def get_short_path_name(long_path: str) -> str:
+    """
+    Convert a Windows path to its short (8.3) form to handle Unicode issues.
+    Returns the original path on non-Windows or if conversion fails.
+    """
+    if platform.system() != "Windows":
+        return long_path
+    
+    try:
+        # Get the short path name using Windows API
+        GetShortPathNameW = ctypes.windll.kernel32.GetShortPathNameW
+        GetShortPathNameW.argtypes = [ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint]
+        GetShortPathNameW.restype = ctypes.c_uint
+        
+        # First call to get the required buffer size
+        buffer_size = GetShortPathNameW(long_path, None, 0)
+        if buffer_size == 0:
+            return long_path
+        
+        # Second call to get the short path
+        buffer = ctypes.create_unicode_buffer(buffer_size)
+        result = GetShortPathNameW(long_path, buffer, buffer_size)
+        
+        if result > 0:
+            return buffer.value
+        return long_path
+    except Exception:
+        return long_path
 
 
 class FreeCADRunner:
@@ -120,20 +151,35 @@ class FreeCADRunner:
             geometry_path = output_dir / cad_config.export.filename
             meta_path = output_dir / "cad_meta.json"
 
-            # Build command-line arguments
-            # Format: freecadcmd script.py -- --param value ...
-            cmd = [
-                self.freecad_cmd,
-                str(template_path.absolute()),
-                "--",
-                "--output", str(geometry_path.absolute()),
-                "--format", cad_config.export.format,
-                "--meta", str(meta_path.absolute()),
+            # Build Python code to run the script with arguments
+            # FreeCAD 1.0 doesn't pass CLI args correctly, so we use -c method
+            # Use short path names on Windows to handle non-ASCII characters (e.g., Chinese)
+            script_path = get_short_path_name(str(template_path.absolute())).replace("\\", "/")
+            output_path_str = get_short_path_name(str(geometry_path.absolute())).replace("\\", "/")
+            meta_path_str = get_short_path_name(str(meta_path.absolute())).replace("\\", "/")
+            
+            # Build sys.argv list
+            argv_parts = [
+                "''",  # script name placeholder
+                "'--output'", f"'{output_path_str}'",
+                "'--format'", f"'{cad_config.export.format}'",
+                "'--meta'", f"'{meta_path_str}'",
             ]
-
+            
             # Add parameters as --key value pairs
             for key, value in cad_config.params.items():
-                cmd.extend([f"--{key}", str(value)])
+                argv_parts.extend([f"'--{key}'", f"'{value}'"])
+            
+            argv_str = ", ".join(argv_parts)
+            
+            # Build the Python command to execute
+            python_code = f"import sys; sys.argv = [{argv_str}]; exec(open('{script_path}').read())"
+            
+            cmd = [
+                self.freecad_cmd,
+                "-c",
+                python_code,
+            ]
 
             # Run FreeCAD
             process = await asyncio.create_subprocess_exec(

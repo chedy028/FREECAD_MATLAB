@@ -15,10 +15,10 @@ if (-not (Test-Path ".env")) {
 }
 
 # Start the server (dotenv will auto-load the .env file)
-Write-Host "Starting server on http://127.0.0.1:8001..." -ForegroundColor Green
+Write-Host "Starting server on http://127.0.0.1:8002..." -ForegroundColor Green
 Write-Host "Press CTRL+C to stop the server" -ForegroundColor Yellow
 Write-Host ""
 
-python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8001 --reload
+python -m uvicorn agent.api.main:app --host 127.0.0.1 --port 8002 --reload
 
 

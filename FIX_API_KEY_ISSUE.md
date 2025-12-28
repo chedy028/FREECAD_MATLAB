@@ -41,7 +41,7 @@ Run again:
 
 ### Quick Test:
 ```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8001/models" -Method GET | Select-Object -First 3
+Invoke-RestMethod -Uri "http://127.0.0.1:8002/models" -Method GET | Select-Object -First 3
 ```
 
 If you see a list of models (like `openai/gpt-4`, etc.), it's working! ✅

@@ -2,8 +2,8 @@
 
 ## 🎉 Server Status: ACTIVE
 
-**Server URL:** http://127.0.0.1:8001  
-**API Documentation:** http://127.0.0.1:8001/docs  
+**Server URL:** http://127.0.0.1:8002  
+**API Documentation:** http://127.0.0.1:8002/docs  
 **Web UI:** `agent_ui.html` (should be open in your browser)
 
 ---
@@ -28,7 +28,7 @@ Press `CTRL+C` in the terminal
 
 ### To Use the App:
 1. **Web UI:** Open `agent_ui.html` in your browser (already opened!)
-2. **API:** Send POST requests to http://127.0.0.1:8001/chat
+2. **API:** Send POST requests to http://127.0.0.1:8002/chat
 
 ---
 
@@ -36,7 +36,7 @@ Press `CTRL+C` in the terminal
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| **FastAPI Server** | ✅ RUNNING | Port 8001 |
+| **FastAPI Server** | ✅ RUNNING | Port 8002 |
 | **OpenRouter API** | ✅ CONFIGURED | From `.env` file |
 | **FreeCAD 1.0** | ✅ READY | `C:\Program Files\FreeCAD 1.0\bin\FreeCADCmd.exe` |
 | **MATLAB R2025b** | ✅ READY | Engine API installed |
@@ -59,12 +59,12 @@ $body = @{
     message = "Design a cantilever beam that minimizes mass while keeping max stress below 200 MPa and deflection below 5mm. Use aluminum, length 200mm, width 20mm, applied force 100N at the tip."
 } | ConvertTo-Json
 
-Invoke-RestMethod -Uri "http://127.0.0.1:8001/chat" -Method POST -Body $body -ContentType "application/json"
+Invoke-RestMethod -Uri "http://127.0.0.1:8002/chat" -Method POST -Body $body -ContentType "application/json"
 ```
 
 ### Method 3: Test with Health Check
 ```powershell
-Invoke-RestMethod -Uri "http://127.0.0.1:8001/health" -Method GET
+Invoke-RestMethod -Uri "http://127.0.0.1:8002/health" -Method GET
 ```
 
 ---
@@ -73,7 +73,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8001/health" -Method GET
 
 All design iterations are automatically saved to:
 ```
-C:\Users\chend\OneDrive\桌面\Projects\FREECAD_MATLAB\runs\
+C:\Projects\FREECAD_MATLAB\runs\
 ```
 
 Each run creates:
@@ -94,7 +94,7 @@ runs/<run_id>/
 ```
 You (via Web UI or API)
   ↓
-FastAPI Server (Port 8001)
+FastAPI Server (Port 8002)
   ↓
 LLM Agent (OpenRouter GPT-4)
   ↓ (outputs JSON parameters)

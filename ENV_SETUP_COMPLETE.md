@@ -34,7 +34,7 @@ The `.env` file will be loaded automatically!
 
 ```env
 # OpenRouter API Configuration
-OPENROUTER_API_KEY=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
+OPENROUTER_API_KEY=sk-or-v1-your-api-key-here
 
 # Optional: Specify default model
 # OPENROUTER_MODEL=openai/gpt-4-turbo

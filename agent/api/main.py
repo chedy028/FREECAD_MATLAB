@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 
@@ -54,7 +55,17 @@ async def lifespan(app: FastAPI):
     )
 
     # Initialize runners
+    # Get platform-specific FreeCAD command
+    import platform
+    if platform.system() == "Windows":
+        freecad_cmd = config.freecad.windows_cmd
+    elif platform.system() == "Darwin":
+        freecad_cmd = config.freecad.macos_cmd
+    else:
+        freecad_cmd = config.freecad.linux_cmd
+    
     freecad_runner = FreeCADRunner(
+        freecad_cmd=freecad_cmd,
         timeout=config.freecad.timeout_seconds,
         allowed_templates=config.freecad.allowed_templates,
         allowed_formats=config.freecad.allowed_export_formats,
@@ -315,12 +326,66 @@ async def list_models():
 
 @app.get("/")
 async def root():
-    """Root endpoint"""
+    """Root endpoint - serve the UI"""
+    ui_path = Path(__file__).parent.parent.parent / "agent_ui.html"
+    if ui_path.exists():
+        return FileResponse(ui_path, media_type="text/html")
     return {
         "name": "CAD-MATLAB Agent API",
         "version": "0.1.0",
         "docs": "/docs",
     }
+
+
+@app.get("/api")
+async def api_info():
+    """API info endpoint"""
+    return {
+        "name": "CAD-MATLAB Agent API",
+        "version": "0.1.0",
+        "docs": "/docs",
+    }
+
+
+@app.get("/runs/{run_id}/artifacts/{filename}")
+async def get_artifact(run_id: str, filename: str):
+    """Serve artifact files (STL, STEP, etc.) from a run directory"""
+    # Validate filename to prevent directory traversal
+    if ".." in filename or "/" in filename or "\\" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    # Check in various subdirectories
+    runs_dir = Path(config.storage.base_dir)
+    possible_paths = [
+        runs_dir / run_id / "cad" / filename,
+        runs_dir / run_id / "simulation" / filename,
+        runs_dir / run_id / filename,
+    ]
+    
+    for file_path in possible_paths:
+        if file_path.exists() and file_path.is_file():
+            # Determine media type
+            suffix = file_path.suffix.lower()
+            media_types = {
+                ".stl": "model/stl",
+                ".step": "model/step",
+                ".stp": "model/step",
+                ".json": "application/json",
+                ".txt": "text/plain",
+                ".log": "text/plain",
+                ".m": "text/plain",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+            }
+            media_type = media_types.get(suffix, "application/octet-stream")
+            
+            return FileResponse(
+                path=str(file_path),
+                media_type=media_type,
+                filename=filename
+            )
+    
+    raise HTTPException(status_code=404, detail=f"Artifact '{filename}' not found")
 
 
 if __name__ == "__main__":

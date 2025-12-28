@@ -89,7 +89,7 @@ security:
   allowed_base_paths:
     - "runs"
     - "cad_templates"
-    - "matlab"
+    - "matlab_scripts"
   max_file_size_mb: 500
   blocked_extensions:
     - ".exe"
@@ -105,8 +105,7 @@ api:
   host: "0.0.0.0"
   port: 8000
   cors_origins:
-    - "http://localhost:3000"
-    - "http://localhost:8000"
+    - "*"  # Allow all origins for development (file:// URLs send null origin)
   log_level: "INFO"
 
 # Job Queue Configuration (optional)

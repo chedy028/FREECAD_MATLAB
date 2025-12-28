@@ -66,17 +66,26 @@ class Iteration(Base):
 # Database setup utilities
 
 async def init_db(database_url: str):
-    """Initialize database schema"""
+    """
+    Initialize database schema and return engine + session maker.
+
+    Args:
+        database_url: SQLAlchemy async database URL
+
+    Returns:
+        Tuple of (engine, session_maker)
+    """
     engine = create_async_engine(database_url, echo=False)
-    
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
-    return engine
+
+    session_maker = async_sessionmaker(engine, expire_on_commit=False)
+    return engine, session_maker
 
 
 async def get_session_maker(database_url: str):
-    """Create async session maker"""
+    """Create async session maker (standalone)"""
     engine = create_async_engine(database_url, echo=False)
     return async_sessionmaker(engine, expire_on_commit=False)
 

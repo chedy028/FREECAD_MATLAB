@@ -9,12 +9,14 @@ from uuid import UUID
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from agent.config import load_config
-from agent.db.models import init_db
+from agent.db.models import init_db, Run, Iteration
 from agent.llm.openrouter_client import OpenRouterClient
+from agent.logging_config import setup_logging, get_logger
 from agent.orchestrator.runner import AgentOrchestrator
-from agent.orchestrator.validators import RunStatus
+from agent.orchestrator.validators import RunState, RunStatus
 from agent.tools.freecad_runner import FreeCADRunner
 from agent.tools.matlab_runner import MATLABRunner
 
@@ -24,15 +26,22 @@ config = load_config()
 
 # Global instances (initialized in lifespan)
 orchestrator: Optional[AgentOrchestrator] = None
+session_maker = None
+logger = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown"""
-    global orchestrator
+    global orchestrator, session_maker, logger
 
-    # Initialize database
-    await init_db(config.storage.database_url)
+    # Setup logging first
+    logger = setup_logging(config)
+    logger.info("Starting CAD-MATLAB Agent API")
+
+    # Initialize database and get session maker
+    _, session_maker = await init_db(config.storage.database_url)
+    logger.info("Database initialized")
 
     # Initialize clients
     api_key = os.getenv(config.openrouter.api_key_env)
@@ -70,18 +79,19 @@ async def lifespan(app: FastAPI):
         runs_base_dir=runs_dir,
         convergence_epsilon=config.agent.convergence["epsilon"],
         convergence_stable_iters=int(config.agent.convergence["stable_iterations"]),
+        max_conversation_messages=config.agent.max_conversation_messages,
     )
 
-    try:
-        print(f"Agent API started - runs directory: {runs_dir.absolute()}")
-    except UnicodeEncodeError:
-        print("Agent API started - runs directory: runs/")
+    logger.info(
+        "Agent API started",
+        extra_data={"runs_dir": str(runs_dir.absolute())},
+    )
 
     yield
 
     # Cleanup
     await matlab_runner.stop_engine()
-    print("Agent API shutdown")
+    logger.info("Agent API shutdown")
 
 
 # Create FastAPI app
@@ -154,7 +164,7 @@ async def health_check():
 async def chat(request: ChatRequest):
     """
     Chat endpoint - start or continue a design run.
-    
+
     If run_id is None, starts a new autonomous run.
     If run_id is provided, continues an existing run (not implemented in MVP).
     """
@@ -165,13 +175,26 @@ async def chat(request: ChatRequest):
             run_id=UUID(request.run_id) if request.run_id else None,
         )
 
+        # Save to database
+        if session_maker:
+            try:
+                await orchestrator.save_to_database(session_maker, request.message)
+            except Exception as db_error:
+                if logger:
+                    logger.warning(
+                        f"Failed to save run to database: {db_error}",
+                        extra_data={"run_id": str(status.run_id)},
+                    )
+
         # Generate response message based on final state
         if status.state.value == "COMPLETED":
+            score_str = f"{status.best_score:.4f}" if status.best_score is not None else "N/A"
             message = (
                 f"Design optimization completed!\n"
                 f"- Total iterations: {status.iterations_completed}\n"
                 f"- Best iteration: {status.best_iteration}\n"
-                f"- Best score: {status.best_score:.4f}\n"
+                f"- Best score: {score_str}\n"
+                f"- Stopped reason: {status.stopped_reason or 'N/A'}\n"
                 f"- Run ID: {status.run_id}\n\n"
                 f"Check `runs/{status.run_id}/` for artifacts."
             )
@@ -179,6 +202,7 @@ async def chat(request: ChatRequest):
             message = (
                 f"Design optimization failed after {status.consecutive_failures} failures.\n"
                 f"- Total iterations: {status.iterations_completed}\n"
+                f"- Stopped reason: {status.stopped_reason or 'N/A'}\n"
                 f"- Run ID: {status.run_id}\n\n"
                 f"Check `runs/{status.run_id}/` for error logs."
             )
@@ -195,11 +219,79 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=500, detail=f"Error running agent: {str(e)}")
 
 
-@app.get("/runs/{run_id}", response_model=RunStatus)
+@app.get("/runs/{run_id}")
 async def get_run_status(run_id: str):
     """Get status of a specific run"""
-    # TODO: Implement database lookup
-    raise HTTPException(status_code=501, detail="Not implemented")
+    if session_maker is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    async with session_maker() as session:
+        # Query run
+        result = await session.execute(
+            select(Run).where(Run.run_id == run_id)
+        )
+        run = result.scalar_one_or_none()
+
+        if run is None:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        return {
+            "run_id": run.run_id,
+            "state": run.state,
+            "current_iteration": run.current_iteration,
+            "iterations_completed": run.iterations_completed,
+            "consecutive_failures": run.consecutive_failures,
+            "best_iteration": run.best_iteration,
+            "best_score": run.best_score,
+            "started_at": run.started_at.isoformat() if run.started_at else None,
+            "updated_at": run.updated_at.isoformat() if run.updated_at else None,
+            "stopped_reason": run.stopped_reason,
+            "user_request": run.user_request,
+        }
+
+
+@app.get("/runs/{run_id}/iterations")
+async def get_run_iterations(run_id: str):
+    """Get all iterations for a run"""
+    if session_maker is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    async with session_maker() as session:
+        # Check if run exists
+        run_result = await session.execute(
+            select(Run).where(Run.run_id == run_id)
+        )
+        run = run_result.scalar_one_or_none()
+
+        if run is None:
+            raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+
+        # Get iterations
+        result = await session.execute(
+            select(Iteration)
+            .where(Iteration.run_id == run_id)
+            .order_by(Iteration.iteration)
+        )
+        iterations = result.scalars().all()
+
+        return {
+            "run_id": run_id,
+            "total_iterations": len(iterations),
+            "iterations": [
+                {
+                    "iteration": it.iteration,
+                    "timestamp": it.timestamp.isoformat() if it.timestamp else None,
+                    "duration_s": it.duration_s,
+                    "cad_success": bool(it.cad_success),
+                    "sim_success": bool(it.sim_success),
+                    "objective_score": it.objective_score,
+                    "constraints_satisfied": bool(it.constraints_satisfied) if it.constraints_satisfied is not None else None,
+                    "constraint_violations": it.constraint_violations,
+                    "artifacts_path": it.artifacts_path,
+                }
+                for it in iterations
+            ],
+        }
 
 
 @app.get("/models")

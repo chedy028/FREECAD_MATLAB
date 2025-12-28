@@ -17,6 +17,7 @@ openrouter:
 # Agent Configuration
 agent:
   max_concurrent_runs: 3
+  max_conversation_messages: 50  # Maximum conversation history messages
   default_budgets:
     max_iterations: 30
     max_wall_time_s: 7200
@@ -113,4 +114,12 @@ queue:
   enabled: false
   broker_url: "redis://localhost:6379/0"
   result_backend: "redis://localhost:6379/1"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "json"  # "json" or "text"
+  file_path: null  # Optional: "logs/agent.log"
+  include_correlation_id: true
+  include_timestamps: true
 

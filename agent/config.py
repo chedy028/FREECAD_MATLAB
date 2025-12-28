@@ -26,6 +26,7 @@ class AgentConfig(BaseModel):
     """Agent configuration"""
 
     max_concurrent_runs: int = 3
+    max_conversation_messages: int = 50  # Conversation history limit
     default_budgets: Dict[str, int] = {
         "max_iterations": 30,
         "max_wall_time_s": 7200,
@@ -104,6 +105,16 @@ class QueueConfig(BaseModel):
     result_backend: str = "redis://localhost:6379/1"
 
 
+class LoggingConfig(BaseModel):
+    """Logging configuration"""
+
+    level: str = "INFO"
+    format: str = "json"  # "json" or "text"
+    file_path: Optional[str] = None  # Optional file logging
+    include_correlation_id: bool = True
+    include_timestamps: bool = True
+
+
 class Config(BaseModel):
     """Complete configuration"""
 
@@ -115,6 +126,7 @@ class Config(BaseModel):
     security: SecurityConfig
     api: APIConfig
     queue: QueueConfig
+    logging: LoggingConfig = LoggingConfig()  # Default logging config
 
 
 def load_config(config_path: str = "config.yaml") -> Config:
